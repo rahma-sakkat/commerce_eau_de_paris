@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dossiers Urbanisme</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    canvas { max-width: 600px; margin: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Dossiers par année</h2>
+  <canvas id="chartYear"></canvas>
+
+  <h2>Répartition des décisions</h2>
+  <canvas id="chartDecision"></canvas>
+
+  <script>
+    // ---- Chart 1: Dossiers par année ----
+    fetch('/api/stats/annee')
+      .then(res => res.json())
+      .then(data => {
+        new Chart(document.getElementById('chartYear'), {
+          type: 'bar',
+          data: {
+            labels: data.map(d => d.annee),
+            datasets: [{
+              label: 'Nombre de dossiers',
+              data: data.map(d => d.total),
+              backgroundColor: 'rgba(75, 192, 192, 0.6)'
+            }]
+          }
+        });
+      });
+
+    // ---- Chart 2: Décision pie chart ----
+    fetch('/api/stats/decision-pie')
+      .then(res => res.json())
+      .then(data => {
+        new Chart(document.getElementById('chartDecision'), {
+          type: 'pie',
+          data: {
+            labels: data.map(d => d.type_decision),
+            datasets: [{
+              data: data.map(d => d.total),
+              backgroundColor: [
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(153, 102, 255, 0.6)'
+              ]
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { position: 'bottom' }
+            }
+          }
+        });
+      });
+  </script>
+</body>
+</html>
