@@ -60,8 +60,9 @@
   </div>
 
   <script>
+    const API_URL = window.API_URL || 'http://backend:8000';
     // ---- Chart 1: Dossiers par année ----
-    fetch('/api/stats/annee')
+    fetch(`${API_URL}/api/stats/annee`)
       .then(res => res.json())
       .then(data => {
         const years = [...new Set(data.map(d => d.annee))];
@@ -100,7 +101,7 @@
       .catch(err => console.error(err));
 
     // ---- Chart 2: Pie ----
-    fetch('/api/stats/decision-pie')
+    fetch(`${API_URL}/api/stats/decision-pie`)
       .then(res => res.json())
       .then(data => {
         new Chart(document.getElementById('chartDecision'), {
@@ -125,7 +126,7 @@
       .catch(err => console.error(err));
 
     // ---- Chart 3: Type vs Etat ----
-    fetch('/api/stats/type-dossier-etat')
+    fetch(`${API_URL}/api/stats/type-dossier-etat`)
       .then(res => res.json())
       .then(data => {
         const types = [...new Set(data.map(d => d.type_dossier))];
@@ -150,7 +151,7 @@
       .catch(err => console.error(err));
 
     // ---- Chart 4: Duration ----
-    fetch('/api/stats/duree-type-etat')
+    fetch(`${API_URL}/api/stats/duree-type-etat`)
       .then(res => res.json())
       .then(data => {
         const types = [...new Set(data.map(d => d.type_dossier))];
@@ -178,7 +179,7 @@
       })
       .catch(err => console.error(err));
  //chart 5
-fetch('/api/stats/circonscription-etat')
+fetch(`${API_URL}/api/stats/circonscription-etat`)
   .then(res => res.json())
   .then(data => {
     const circonscriptions = [...new Set(data.map(d => d.circonscription))];
@@ -223,7 +224,7 @@ fetch('/api/stats/circonscription-etat')
   //chart6
 
     // Fetch data and render chart
-    fetch('/api/stats/etat-types')
+    fetch(`${API_URL}/api/stats/etat-types`)
       .then(res => res.json())
       .then(data => {
         const etats = [...new Set(data.map(d => d.etat))]; // ['accordé','refusé']

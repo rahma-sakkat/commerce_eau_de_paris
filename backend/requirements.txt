@@ -1,5 +1,8 @@
-pandas
-SQLAlchemy
-pymysql
 fastapi
 uvicorn
+SQLAlchemy
+pymysql
+requests
+pandas
+cryptography
+

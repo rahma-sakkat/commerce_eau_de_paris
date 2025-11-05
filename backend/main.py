@@ -145,5 +145,7 @@ def get_decision_type_stats(db: Session = Depends(get_db)):
     return result
 
 # ---------- FRONTEND ----------
-frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
-app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+#frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
+# Path inside the container
+frontend_path = os.path.join(os.getcwd(), "frontend")
+app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

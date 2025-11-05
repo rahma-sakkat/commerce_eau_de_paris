@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      API_URL: http://backend:8000  
+    container_name: frontend_app
+    restart: always
+    ports:
+      - "3000:80"  # Access frontend at http://localhost:3000
+    volumes:
+      - ./frontend:/app
+    
+
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_app
+    restart: always
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DB: eau_de_paris
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./frontend/dist:/app/frontend 
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: eau_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: eau_de_paris
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
