@@ -4,36 +4,102 @@
   <title>Dossiers Urbanisme</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    canvas { max-width: 600px; margin: 20px; }
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+    h2 { color: #333; }
+    .chart-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: space-between;
+    }
+    .chart-box { 
+      flex: 1 1 45%;        /* 2 per row */
+      max-width: 600px;
+      background: #fff; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    canvas { width: 100% !important; height: 400px !important; }
+    @media (max-width: 900px) {
+      .chart-box { flex: 1 1 100%; }
+    }
   </style>
 </head>
 <body>
-  <h2>Dossiers par année</h2>
-  <canvas id="chartYear"></canvas>
 
-  <h2>Répartition des décisions</h2>
-  <canvas id="chartDecision"></canvas>
+  <div class="chart-container">
+    <div class="chart-box">
+      <h2>Dossiers par année</h2>
+      <canvas id="chartYear"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>Répartition des décisions</h2>
+      <canvas id="chartDecision"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>Répartition des états par type de dossier</h2>
+      <canvas id="chartTypeEtat"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>Durée moyenne par type de dossier et état</h2>
+      <canvas id="chartDureeTypeEtat"></canvas>
+    </div>
+      <div class="chart-box">
+     <h2>Circonscription vs  Etat</h2>
+<canvas id="chartCirconscriptionTypeEtat"></canvas>
+
+    </div>
+<div class="chart-box">
+     <h2>Etat vs Type décision</h2>
+<canvas id="chartEtatTypes"></canvas>
+    
+  </div>
 
   <script>
     // ---- Chart 1: Dossiers par année ----
     fetch('/api/stats/annee')
       .then(res => res.json())
       .then(data => {
+        const years = [...new Set(data.map(d => d.annee))];
+        const etats = [...new Set(data.map(d => d.etat))];
+
+        const colorMap = {
+          "refusé": "rgba(255, 99, 132, 0.7)",
+          "accordé": "rgba(75, 192, 192, 0.7)",
+          "en cours d'instruction": "rgba(255, 206, 86, 0.7)",
+          "autre": "rgba(153, 102, 255, 0.7)"
+        };
+
+        const datasets = etats.map(etat => {
+          const color = Object.keys(colorMap).find(k => etat.toLowerCase().includes(k)) 
+                        ? colorMap[Object.keys(colorMap).find(k => etat.toLowerCase().includes(k))]
+                        : colorMap["autre"];
+          return {
+            label: etat,
+            data: years.map(y => {
+              const found = data.find(d => d.annee === y && d.etat === etat);
+              return found ? found.total : 0;
+            }),
+            backgroundColor: color
+          };
+        });
+
         new Chart(document.getElementById('chartYear'), {
           type: 'bar',
-          data: {
-            labels: data.map(d => d.annee),
-            datasets: [{
-              label: 'Nombre de dossiers',
-              data: data.map(d => d.total),
-              backgroundColor: 'rgba(75, 192, 192, 0.6)'
-            }]
+          data: { labels: years, datasets },
+          options: {
+            plugins: { legend: { position: 'bottom' } },
+            scales: { x: { stacked: false }, y: { beginAtZero: true } }
           }
         });
-      });
+      })
+      .catch(err => console.error(err));
 
-    // ---- Chart 2: Décision pie chart ----
+    // ---- Chart 2: Pie ----
     fetch('/api/stats/decision-pie')
       .then(res => res.json())
       .then(data => {
@@ -48,16 +114,161 @@
                 'rgba(255, 99, 132, 0.6)',
                 'rgba(255, 206, 86, 0.6)',
                 'rgba(153, 102, 255, 0.6)'
-              ]
+              ],
+              borderColor: '#fff',
+              borderWidth: 1
             }]
           },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      })
+      .catch(err => console.error(err));
+
+    // ---- Chart 3: Type vs Etat ----
+    fetch('/api/stats/type-dossier-etat')
+      .then(res => res.json())
+      .then(data => {
+        const types = [...new Set(data.map(d => d.type_dossier))];
+        const etats = [...new Set(data.map(d => d.etat))];
+        const colors = ['rgba(75,192,192,0.7)','rgba(255,99,132,0.7)','rgba(255,206,86,0.7)','rgba(153,102,255,0.7)'];
+
+        const datasets = etats.map((etat, i) => ({
+          label: etat,
+          data: types.map(t => {
+            const found = data.find(d => d.type_dossier === t && d.etat === etat);
+            return found ? found.total : 0;
+          }),
+          backgroundColor: colors[i % colors.length]
+        }));
+
+        new Chart(document.getElementById('chartTypeEtat'), {
+          type: 'bar',
+          data: { labels: types, datasets },
+          options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+        });
+      })
+      .catch(err => console.error(err));
+
+    // ---- Chart 4: Duration ----
+    fetch('/api/stats/duree-type-etat')
+      .then(res => res.json())
+      .then(data => {
+        const types = [...new Set(data.map(d => d.type_dossier))];
+        const etats = [...new Set(data.map(d => d.etat))];
+        const colors = ['rgba(75,192,192,0.7)','rgba(255,99,132,0.7)','rgba(255,206,86,0.7)','rgba(153,102,255,0.7)'];
+
+        const datasets = etats.map((etat,i)=>({
+          label: etat,
+          data: types.map(t=>{
+            const found = data.find(d=>d.type_dossier===t && d.etat===etat);
+            return found ? found.duree_moyenne : 0;
+          }),
+          backgroundColor: colors[i%colors.length]
+        }));
+
+        new Chart(document.getElementById('chartDureeTypeEtat'), {
+          type: 'bar',
+          data: { labels: types, datasets },
           options: {
+            responsive: true,
+            scales: { x: { stacked:true, title:{display:true,text:'Type de dossier'}}, y:{ stacked:true, beginAtZero:true, title:{display:true,text:'Durée moyenne (jours)'}}},
+            plugins: { legend:{ position:'bottom'} }
+          }
+        });
+      })
+      .catch(err => console.error(err));
+ //chart 5
+fetch('/api/stats/circonscription-etat')
+  .then(res => res.json())
+  .then(data => {
+    const circonscriptions = [...new Set(data.map(d => d.circonscription))];
+    const etats = [...new Set(data.map(d => d.etat))];
+
+    const colorMap = {
+      "accordé": "rgba(75,192,192,0.7)",
+      "accepte": "rgba(75,192,192,0.7)",
+      "refusé": "rgba(255,99,132,0.7)",
+      "refuse": "rgba(255,99,132,0.7)",
+      "en cours": "rgba(255,206,86,0.7)",
+      "autre": "rgba(153,102,255,0.7)"
+    };
+
+    const datasets = etats.map(etat => ({
+      label: etat,
+      data: circonscriptions.map(c => {
+        const found = data.find(d => d.circonscription === c && d.etat === etat);
+        return found ? found.total : 0;
+      }),
+      backgroundColor: colorMap[Object.keys(colorMap).find(k => etat.toLowerCase().includes(k))] || colorMap["autre"]
+    }));
+
+    new Chart(document.getElementById('chartCirconscriptionTypeEtat'), {
+      type: 'bar',
+      data: { labels: circonscriptions, datasets },
+      options: {
+        indexAxis: 'y', // horizontal
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          title: { display: true, text: 'Circonscription par Etat' }
+        },
+        scales: {
+          x: { stacked: true, beginAtZero: true },
+          y: { stacked: true }
+        }
+      }
+    });
+  })
+  .catch(err => console.error("Error loading chart data:", err));
+  //chart6
+
+    // Fetch data and render chart
+    fetch('/api/stats/etat-types')
+      .then(res => res.json())
+      .then(data => {
+        const etats = [...new Set(data.map(d => d.etat))]; // ['accordé','refusé']
+        const types = [...new Set(data.map(d => d.type_decision))];
+
+        const colors = [
+          'rgba(75,192,192,0.7)',
+          'rgba(255,99,132,0.7)',
+          'rgba(255,206,86,0.7)',
+          'rgba(153,102,255,0.7)',
+          'rgba(255,159,64,0.7)'
+        ];
+
+        const colorMap = {};
+        types.forEach((t, i) => colorMap[t] = colors[i % colors.length]);
+
+        const datasets = types.map(type => ({
+          label: type,
+          data: etats.map(etat => {
+            const found = data.find(d => d.etat === etat && d.type_decision === type);
+            return found ? found.total : 0;
+          }),
+          backgroundColor: colorMap[type]
+        }));
+
+        const ctx = document.getElementById('chartEtatTypes').getContext('2d');
+
+        new Chart(ctx, {
+          type: 'bar',
+          data: { labels: etats, datasets },
+          options: {
+            indexAxis: 'y', // horizontal
+            responsive: true,
             plugins: {
-              legend: { position: 'bottom' }
+              legend: { position: 'bottom' },
+              title: { display: true, text: 'Répartition des Types par Etat' }
+            },
+            scales: {
+              x: { stacked: true, beginAtZero: true },
+              y: { stacked: true }
             }
           }
         });
-      });
-  </script>
+      })
+      .catch(err => console.error("Error loading chart data:", err));
+</script>
 </body>
 </html>
